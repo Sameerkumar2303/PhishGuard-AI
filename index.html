@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phishing Website Detector | Supervised Machine Learning</title>
+  <meta name="description" content="Interactive Supervised Learning Phishing Website Detector featuring Logistic Regression, Naive Bayes, Decision Trees, and Random Forests in pure JavaScript.">
+  
+  <!-- Modern Typography from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Project Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- ==========================================
+       Application Navigation Sidebar
+       ========================================== -->
+  <aside class="app-sidebar">
+    <div class="sidebar-container">
+      <div class="brand-logo">
+        <div class="shield-icon">🛡️</div>
+        <div class="brand-text">
+          <h1>PhishGuard AI</h1>
+          <span>Supervised Learning Detector</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs" role="tablist">
+        <button class="tab-btn active" id="tab-btn-scanner" data-target="tab-scanner" role="tab" aria-selected="true">
+          <span>🔍</span> Live Scanner
+        </button>
+        <button class="tab-btn" id="tab-btn-training" data-target="tab-training" role="tab" aria-selected="false">
+          <span>🧠</span> Model Training & Metrics
+        </button>
+        <button class="tab-btn" id="tab-btn-dataset" data-target="tab-dataset" role="tab" aria-selected="false">
+          <span>📊</span> Dataset Explorer
+        </button>
+        <button class="tab-btn" id="tab-btn-tree" data-target="tab-tree" role="tab" aria-selected="false">
+          <span>🌳</span> Decision Tree Rules
+        </button>
+        <button class="tab-btn" id="tab-btn-theory" data-target="tab-theory" role="tab" aria-selected="false">
+          <span>📚</span> ML Theory Guide
+        </button>
+      </nav>
+
+      <div class="sidebar-status">
+        <div class="status-dot"></div>
+        <span id="model-status-text">Models Active (130 Samples)</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==========================================
+       Main Workspace
+       ========================================== -->
+  <main class="main-wrapper">
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-container">
+      <button id="theme-toggle-btn" class="theme-btn" aria-label="Toggle Dark Mode">
+        <span class="theme-icon-light">☀️</span>
+        <span class="theme-icon-dark" style="display:none;">🌙</span>
+      </button>
+    </div>
+
+
+    <!-- ==========================================
+         TAB 1: LIVE URL SCANNER & INSPECTOR
+         ========================================== -->
+    <section class="tab-pane active" id="tab-scanner" role="tabpanel">
+      <!-- Scanner Hero Input -->
+      <div class="scanner-hero">
+        <h2>Enter Website URL for Heuristic & ML Inspection</h2>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.3rem;">
+          Extracts 15 lexical, structural, and domain features to predict phishing risk using trained supervised classifiers.
+        </p>
+
+        <form id="scanner-form" onsubmit="event.preventDefault(); window.App.handleScan();">
+          <div class="scanner-input-container">
+            <div class="url-input-wrapper">
+              <span class="url-icon">🌐</span>
+              <input type="text" id="url-input" placeholder="e.g. http://paypal-security-update-verify.com/login/auth.php" value="http://paypal-security-update-verify.com/login/auth.php" autocomplete="off" spellcheck="false" required>
+            </div>
+            <button type="submit" class="btn-primary" id="btn-scan">
+              <span>⚡</span> Scan & Analyze URL
+            </button>
+          </div>
+        </form>
+
+        <!-- Quick Test Presets -->
+        <div class="quick-presets">
+          <span class="preset-label">Test Samples:</span>
+          <button class="preset-chip chip-phish" onclick="window.App.loadSample('http://chase-security-update-verify.com/login/auth.php')">
+            🚨 PayPal/Chase Phish
+          </button>
+          <button class="preset-chip chip-phish" onclick="window.App.loadSample('http://192.168.1.105/paypal/signin/verification.html')">
+            🚨 IP Host Phish
+          </button>
+          <button class="preset-chip chip-phish" onclick="window.App.loadSample('http://bit.ly/3xPh1shBankUpdate?redirect=secure-portal')">
+            🚨 Shortened Malicious
+          </button>
+          <button class="preset-chip chip-phish" onclick="window.App.loadSample('http://metamask-extension-recovery-phrase.xyz/wallet/restore.php')">
+            🚨 Crypto Wallet Scam
+          </button>
+          <button class="preset-chip chip-legit" onclick="window.App.loadSample('https://github.com/microsoft/vscode/releases')">
+            🛡️ GitHub (Legit)
+          </button>
+          <button class="preset-chip chip-legit" onclick="window.App.loadSample('https://en.wikipedia.org/wiki/Supervised_learning')">
+            🛡️ Wikipedia (Legit)
+          </button>
+        </div>
+      </div>
+
+      <!-- Verdict Banner -->
+      <div id="verdict-banner-container">
+        <!-- Rendered dynamically by App -->
+      </div>
+
+      <!-- Scanner Grid: Radial Gauge, Consensus, XAI -->
+      <div class="grid-3" style="margin-bottom: 1.5rem;">
+        <!-- Gauge Card -->
+        <div class="card" style="text-align: center;">
+          <div class="card-header">
+            <h3 class="card-title"><span>🎯</span> Risk Probability Gauge</h3>
+            <span class="card-badge">Real-time</span>
+          </div>
+          <div style="position: relative; width: 100%; height: 210px; display: flex; justify-content: center; align-items: center;">
+            <canvas id="canvas-risk-gauge" width="340" height="210"></canvas>
+          </div>
+        </div>
+
+        <!-- Multi-Model Consensus -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><span>🤖</span> Multi-Model Consensus</h3>
+            <span class="card-badge">4 Supervised Models</span>
+          </div>
+          <div id="consensus-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Explainable AI (XAI) Feature Impact -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><span>💡</span> Explainable AI (XAI)</h3>
+            <span class="card-badge">Risk Breakdown</span>
+          </div>
+          <div id="xai-container" style="max-height: 230px; overflow-y: auto; padding-right: 0.25rem;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Extraction Table Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><span>🔬</span> Extracted Feature Vector (15 Structural & Lexical Signals)</h3>
+          <span class="card-badge" id="features-scanned-count">15 Features Extracted</span>
+        </div>
+        <div class="feature-table-container">
+          <table class="feature-table" id="feature-table">
+            <thead>
+              <tr>
+                <th>Feature Name</th>
+                <th>Extracted Value</th>
+                <th>Typical Safe Range</th>
+                <th>Diagnostic Severity</th>
+                <th>Supervised Heuristic Rationale</th>
+              </tr>
+            </thead>
+            <tbody id="feature-table-body">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 2: MODEL TRAINING & EVALUATION
+         ========================================== -->
+    <section class="tab-pane" id="tab-training" role="tabpanel">
+      <!-- Hyperparameter Configuration Bar -->
+      <div class="hyperparam-bar">
+        <div class="param-group">
+          <label for="split-ratio">Train / Test Split Ratio: <b id="split-val-display" style="color: var(--accent-sky);">75% / 25%</b></label>
+          <input type="range" id="split-ratio" min="50" max="90" step="5" value="75" oninput="document.getElementById('split-val-display').innerText = this.value + '% / ' + (100 - this.value) + '%'">
+        </div>
+
+        <div class="param-group">
+          <label for="learning-rate">Learning Rate (&alpha;):</label>
+          <select id="learning-rate">
+            <option value="0.01">0.01 (Conservative)</option>
+            <option value="0.05" selected>0.05 (Standard)</option>
+            <option value="0.1">0.10 (Aggressive)</option>
+            <option value="0.2">0.20 (Fast)</option>
+          </select>
+        </div>
+
+        <div class="param-group">
+          <label for="train-epochs">Epochs (Iterations):</label>
+          <select id="train-epochs">
+            <option value="50">50 Epochs</option>
+            <option value="100">100 Epochs</option>
+            <option value="150" selected>150 Epochs</option>
+            <option value="250">250 Epochs</option>
+          </select>
+        </div>
+
+        <div class="param-group">
+          <label for="tree-depth">Decision Tree Max Depth:</label>
+          <select id="tree-depth">
+            <option value="3">Depth 3 (Simple)</option>
+            <option value="5" selected>Depth 5 (Balanced)</option>
+            <option value="7">Depth 7 (Deep)</option>
+          </select>
+        </div>
+
+        <div class="train-btn-wrapper">
+          <button class="btn-primary" id="btn-retrain" style="width: 100%;" onclick="window.App.retrainModels();">
+            <span>⚡</span> Train All Models
+          </button>
+        </div>
+      </div>
+
+      <!-- Test Metrics Summary Cards -->
+      <div class="metrics-summary-row">
+        <div class="metric-stat-card">
+          <div class="stat-val" id="metric-accuracy">--</div>
+          <div class="stat-label">Test Accuracy</div>
+        </div>
+        <div class="metric-stat-card">
+          <div class="stat-val" id="metric-precision">--</div>
+          <div class="stat-label">Precision (Phishing)</div>
+        </div>
+        <div class="metric-stat-card">
+          <div class="stat-val" id="metric-recall">--</div>
+          <div class="stat-label">Recall / Sensitivity</div>
+        </div>
+        <div class="metric-stat-card">
+          <div class="stat-val" id="metric-f1">--</div>
+          <div class="stat-label">F1-Score</div>
+        </div>
+      </div>
+
+      <!-- Training Visualizations: Loss Curve & Confusion Matrix -->
+      <div class="grid-2" style="margin-bottom: 1.5rem;">
+        <!-- Loss Curve Canvas -->
+        <div class="card" style="display: flex; flex-direction: column;">
+          <div class="card-header">
+            <h3 class="card-title"><span>📉</span> Gradient Descent Convergence</h3>
+            <span class="card-badge">Loss vs Epochs</span>
+          </div>
+          <div style="width: 100%; flex-grow: 1; min-height: 260px;">
+            <canvas id="canvas-loss-chart" width="580" height="260"></canvas>
+          </div>
+        </div>
+
+        <!-- Confusion Matrix Container -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><span>🎯</span> Confusion Matrix (Holdout Test Set)</h3>
+            <span class="card-badge" id="test-set-size-badge">Test Set</span>
+          </div>
+          <div id="confusion-matrix-container">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Second Row: ROC Curve & Multi-Model Bar Chart -->
+      <div class="grid-2">
+        <!-- ROC Curve -->
+        <div class="card" style="display: flex; flex-direction: column;">
+          <div class="card-header">
+            <h3 class="card-title"><span>📈</span> Receiver Operating Characteristic (ROC)</h3>
+            <span class="card-badge">FPR vs TPR</span>
+          </div>
+          <div style="width: 100%; flex-grow: 1; min-height: 260px;">
+            <canvas id="canvas-roc-chart" width="580" height="260"></canvas>
+          </div>
+        </div>
+
+        <!-- Model Comparison Grouped Bar Chart -->
+        <div class="card" style="display: flex; flex-direction: column;">
+          <div class="card-header">
+            <h3 class="card-title"><span>📊</span> 4-Model Comparative Benchmark</h3>
+            <span class="card-badge">Cross-Evaluation</span>
+          </div>
+          <div style="width: 100%; flex-grow: 1; min-height: 260px;">
+            <canvas id="canvas-comparison-chart" width="580" height="260"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 3: DATASET EXPLORER & CSV MANAGER
+         ========================================== -->
+    <section class="tab-pane" id="tab-dataset" role="tabpanel">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><span>📂</span> Labeled Ground-Truth Dataset Explorer</h3>
+          <div class="dataset-stats-pills">
+            <span class="stat-pill" style="color: var(--accent-sky);" id="dataset-total-pill">Total: 130</span>
+            <span class="stat-pill" style="color: #f87171;" id="dataset-phish-pill">Phishing: 65</span>
+            <span class="stat-pill" style="color: #34d399;" id="dataset-legit-pill">Legitimate: 65</span>
+          </div>
+        </div>
+
+        <!-- Toolbar: Search, Filter, Export, Import -->
+        <div class="dataset-toolbar">
+          <input type="text" class="search-input" id="dataset-search-input" placeholder="🔍 Search URL or Category..." oninput="window.App.filterDatasetTable();">
+
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <select id="dataset-filter-label" onchange="window.App.filterDatasetTable();" style="background: rgba(7,11,20,0.9); border: 1px solid var(--border-color); color: #fff; padding: 0.6rem; border-radius: 8px; font-size: 0.85rem;">
+              <option value="all">All Labels (Phishing & Legit)</option>
+              <option value="1">Only Phishing (Label = 1)</option>
+              <option value="0">Only Legitimate (Label = 0)</option>
+            </select>
+
+            <button class="btn-primary" style="padding: 0.6rem 1rem; font-size: 0.85rem;" onclick="window.App.exportDatasetCSV();">
+              <span>💾</span> Export CSV
+            </button>
+
+            <label class="btn-primary" style="padding: 0.6rem 1rem; font-size: 0.85rem; background: rgba(13,21,39,0.9); border: 1px solid var(--border-glow); cursor: pointer;">
+              <span>📥</span> Import CSV
+              <input type="file" id="csv-file-input" accept=".csv" style="display: none;" onchange="window.App.handleCSVUpload(event)">
+            </label>
+          </div>
+        </div>
+
+        <!-- Dataset Table -->
+        <div class="feature-table-container" style="max-height: 520px;">
+          <table class="feature-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>URL String</th>
+                <th>Category</th>
+                <th>Ground Truth Label</th>
+                <th>URL Length</th>
+                <th>Has IP</th>
+                <th>Shortened</th>
+                <th>Entropy</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="dataset-table-body">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 4: DECISION TREE & RULES VISUALIZER
+         ========================================== -->
+    <section class="tab-pane" id="tab-tree" role="tabpanel">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><span>🌳</span> Interactive Decision Tree Rules Graph</h3>
+          <span class="card-badge">Interpretable Supervised Classifier</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+          Visualizes recursive binary decision splitting nodes built using <b>Gini Impurity</b> minimization. Follow the condition branches from top to bottom.
+        </p>
+
+        <div id="tree-graph-container">
+          <!-- Rendered dynamically by Visualizer.renderDecisionTree -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 5: SUPERVISED LEARNING THEORY & GUIDE
+         ========================================== -->
+    <section class="tab-pane" id="tab-theory" role="tabpanel">
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <h3 class="card-title"><span>📖</span> Understanding Supervised Learning in Cybersecurity</h3>
+          <span class="card-badge">ML Fundamentals</span>
+        </div>
+
+        <div class="theory-section">
+          <h2>1. What is Supervised Learning?</h2>
+          <p>
+            <b>Supervised Learning</b> is a branch of Machine Learning where an algorithm learns a mapping function from input features $(X)$ to a target label $(Y)$ based on pre-labeled training examples. In Phishing Detection, each sample is represented by an extracted vector of 15 numerical features, with binary target labels:
+          </p>
+          <div class="formula-card">
+            $Y \in \{0, 1\}$ &nbsp;&nbsp;|&nbsp;&nbsp; $0 = \text{Legitimate Website}$, &nbsp;&nbsp; $1 = \text{Phishing Website}$
+          </div>
+        </div>
+
+        <div class="theory-section">
+          <h2>2. The End-to-End Supervised ML Pipeline</h2>
+          <div class="step-card-grid">
+            <div class="step-card">
+              <div class="step-number">01</div>
+              <h4>Data Collection & Labeling</h4>
+              <p>Gathering known malicious phishing feeds (PhishTank, OpenPhish) and verified benign websites (Alexa Top, Tranco).</p>
+            </div>
+            <div class="step-card">
+              <div class="step-number">02</div>
+              <h4>Feature Extraction</h4>
+              <p>Parsing raw URL strings into 15 numeric and binary heuristic features (length, IP hostname, entropy, keywords).</p>
+            </div>
+            <div class="step-card">
+              <div class="step-number">03</div>
+              <h4>Train / Test Splitting</h4>
+              <p>Partitioning data (e.g. 75% Training / 25% Testing) to objectively measure generalization on unseen URLs.</p>
+            </div>
+            <div class="step-card">
+              <div class="step-number">04</div>
+              <h4>Model Optimization</h4>
+              <p>Training models using Gradient Descent, Bayesian probabilities, and Information Gain tree partitioning.</p>
+            </div>
+            <div class="step-card">
+              <div class="step-number">05</div>
+              <h4>Validation & Metrics</h4>
+              <p>Evaluating Accuracy, Precision, Recall, F1-Score, Confusion Matrix, and ROC/AUC curves.</p>
+            </div>
+            <div class="step-card">
+              <div class="step-number">06</div>
+              <h4>Real-Time Inference</h4>
+              <p>Extracting features live from user-entered URLs and producing an instant calibrated risk score.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="theory-section" style="margin-top: 2rem;">
+          <h2>3. Implemented Supervised Algorithms & Mathematical Formulas</h2>
+          
+          <div class="grid-2" style="margin-top: 1rem;">
+            <div class="card" style="background: rgba(13,21,39,0.5);">
+              <h4 style="color: var(--accent-sky); margin-bottom: 0.5rem;">A. Logistic Regression</h4>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                A linear model transformed via the sigmoid activation function to output a calibrated probability between 0 and 1.
+              </p>
+              <div class="formula-card" style="font-size: 0.8rem;">
+                Sigmoid: $\sigma(z) = \frac{1}{1 + e^{-z}}$, where $z = \mathbf{w}^T\mathbf{x} + b$<br>
+                Loss: $J(\mathbf{w}) = -\frac{1}{m}\sum [y\log(\hat{y}) + (1-y)\log(1-\hat{y})]$
+              </div>
+            </div>
+
+            <div class="card" style="background: rgba(13,21,39,0.5);">
+              <h4 style="color: var(--accent-sky); margin-bottom: 0.5rem;">B. Gaussian Naive Bayes</h4>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                Applies Bayes' Theorem assuming conditional feature independence given the class.
+              </p>
+              <div class="formula-card" style="font-size: 0.8rem;">
+                Posterior: $P(Y|X) = \frac{P(Y) \prod P(X_i|Y)}{P(X)}$<br>
+                Gaussian Likelihood: $P(x|\mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}e^{-\frac{(x-\mu)^2}{2\sigma^2}}$
+              </div>
+            </div>
+
+            <div class="card" style="background: rgba(13,21,39,0.5);">
+              <h4 style="color: var(--accent-sky); margin-bottom: 0.5rem;">C. Decision Tree</h4>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                Constructs hierarchical if-else decision rules by selecting feature thresholds that minimize impurity.
+              </p>
+              <div class="formula-card" style="font-size: 0.8rem;">
+                Gini Impurity: $Gini(p) = 1 - \sum_{k=0}^1 p_k^2$<br>
+                Information Gain: $\Delta Gini = Gini_{parent} - \sum \frac{|S_v|}{|S|} Gini(S_v)$
+              </div>
+            </div>
+
+            <div class="card" style="background: rgba(13,21,39,0.5);">
+              <h4 style="color: var(--accent-sky); margin-bottom: 0.5rem;">D. Random Forest Ensemble</h4>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                Ensemble of $N$ decision trees trained on bootstrap samples and random feature subspaces; predictions are aggregated via majority voting.
+              </p>
+              <div class="formula-card" style="font-size: 0.8rem;">
+                $\hat{Y} = \text{mode}\left(\{ Tree_1(X), Tree_2(X), \dots, Tree_N(X) \}\right)$
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="theory-section" style="margin-top: 2rem;">
+          <h2>4. Evaluation Metrics for Phishing Detection</h2>
+          <p>
+            In cyber defense, evaluating models beyond simple accuracy is vital because False Negatives (missing a phishing website) can cause catastrophic credential theft, while False Positives (blocking legitimate banks) frustrate users:
+          </p>
+          <div class="formula-card" style="font-size: 0.85rem;">
+            <b>Accuracy:</b> $\frac{TP + TN}{TP + TN + FP + FN}$ &nbsp;&nbsp;|&nbsp;&nbsp;
+            <b>Precision:</b> $\frac{TP}{TP + FP}$ &nbsp;&nbsp;|&nbsp;&nbsp;
+            <b>Recall (Sensitivity):</b> $\frac{TP}{TP + FN}$ &nbsp;&nbsp;|&nbsp;&nbsp;
+            <b>F1-Score:</b> $2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}$
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================
+       Scripts: Modular Architecture
+       ========================================== -->
+  <script src="feature-extractor.js"></script>
+  <script src="ml-engine.js"></script>
+  <script src="dataset.js"></script>
+  <script src="visualizer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
